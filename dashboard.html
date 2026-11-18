@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0A2F30">
+  <meta name="robots" content="noindex">
+  <title>Your account – Your Brand</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="dash-top">
+    <a class="wordmark" href="dashboard.html">
+      <svg viewBox="0 0 26 26" aria-hidden="true">
+        <path d="M3 26V13a10 10 0 0 1 20 0v13" fill="none" stroke="#F2B632" stroke-width="3"/>
+      </svg>
+      Your Brand
+    </a>
+    <button class="secondary" id="signout" type="button" hidden>Sign out</button>
+  </header>
+
+  <main class="dash-main">
+    <p id="notice" class="status" role="status" hidden></p>
+
+    <div id="content" hidden>
+      <h1>You're signed in</h1>
+      <p class="lede">Signed in as <span class="who" id="who"></span>.</p>
+      <p>
+        This page is only for people who have signed in. Replace this text with your
+        members' content: a profile form, their saved items, or whatever your site offers.
+      </p>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    (async () => {
+      const notice  = document.getElementById("notice");
+      const content = document.getElementById("content");
+      const who     = document.getElementById("who");
+      const signout = document.getElementById("signout");
+
+      if (!isConfigured) {
+        notice.textContent = ui.demoMessage;
+        notice.dataset.type = "ok";
+        notice.hidden = false;
+        return;
+      }
+
+      const { data } = await sb.auth.getSession();
+      if (!data || !data.session) {
+        window.location.replace(SITE.loginPage);
+        return;
+      }
+
+      who.textContent = data.session.user.email;
+      content.hidden = false;
+      signout.hidden = false;
+
+      signout.addEventListener("click", async () => {
+        await sb.auth.signOut();
+        window.location.replace(SITE.loginPage);
+      });
+      sb.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_OUT") window.location.replace(SITE.loginPage);
+      });
+    })();
+  </script>
+</body>
+</html>

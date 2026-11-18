@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0A2F30">
+  <meta name="description" content="Create your account.">
+  <title>Create account – Your Brand</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+
+    <aside class="brand">
+      <a class="wordmark" href="index.html">
+        <svg viewBox="0 0 26 26" aria-hidden="true">
+          <path d="M3 26V13a10 10 0 0 1 20 0v13" fill="none" stroke="#F2B632" stroke-width="3"/>
+        </svg>
+        Your Brand
+      </a>
+      <div>
+        <h2 class="headline">Create your account.</h2>
+        <p class="subline">It takes less than a minute.</p>
+      </div>
+      <svg class="arches" viewBox="0 0 400 520" aria-hidden="true" focusable="false">
+        <path pathLength="1" d="M32 520V240A168 168 0 0 1 368 240V520"/>
+        <path pathLength="1" d="M66 520V240A134 134 0 0 1 334 240V520"/>
+        <path pathLength="1" d="M100 520V240A100 100 0 0 1 300 240V520"/>
+        <path pathLength="1" d="M134 520V240A66 66 0 0 1 266 240V520"/>
+        <path pathLength="1" class="lit" d="M168 520V240A32 32 0 0 1 232 240V520"/>
+      </svg>
+    </aside>
+
+    <main class="panel">
+      <div class="signin">
+        <h1>Create account</h1>
+        <p class="lede">Use your email and choose a password.</p>
+
+        <form id="signup-form" novalidate>
+          <div class="field">
+            <div class="label-row"><label for="email">Email</label></div>
+            <input id="email" name="email" type="email" inputmode="email"
+                   autocomplete="username" autocapitalize="none" autocorrect="off"
+                   spellcheck="false" required aria-describedby="email-error">
+            <p class="error" id="email-error" hidden></p>
+          </div>
+
+          <div class="field">
+            <div class="label-row"><label for="password">Password</label></div>
+            <div class="pw">
+              <input id="password" name="password" type="password"
+                     autocomplete="new-password" required minlength="8"
+                     aria-describedby="password-hint password-error caps-hint">
+              <button class="toggle" id="toggle-password" type="button"
+                      aria-controls="password confirm" aria-label="Show password">Show</button>
+            </div>
+            <p class="hint" id="password-hint">Use at least 8 characters.</p>
+            <p class="hint" id="caps-hint" hidden>Caps Lock is on.</p>
+            <p class="error" id="password-error" hidden></p>
+          </div>
+
+          <div class="field">
+            <div class="label-row"><label for="confirm">Confirm password</label></div>
+            <input id="confirm" name="confirm" type="password"
+                   autocomplete="new-password" required aria-describedby="confirm-error">
+            <p class="error" id="confirm-error" hidden></p>
+          </div>
+
+          <p class="status" id="form-status" role="status" aria-live="polite"></p>
+
+          <button class="submit" id="submit" type="submit">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="btn-label">Create account</span>
+          </button>
+        </form>
+
+        <p class="alt">Already have an account? <a href="index.html">Sign in</a></p>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    (() => {
+      const form      = document.getElementById("signup-form");
+      const email     = document.getElementById("email");
+      const password  = document.getElementById("password");
+      const confirm   = document.getElementById("confirm");
+      const status    = document.getElementById("form-status");
+      const submitBtn = document.getElementById("submit");
+      const errors = {
+        email:    document.getElementById("email-error"),
+        password: document.getElementById("password-error"),
+        confirm:  document.getElementById("confirm-error"),
+      };
+
+      ui.bindPasswordToggle(document.getElementById("toggle-password"), password, confirm);
+      ui.bindCapsLock(password, document.getElementById("caps-hint"));
+      email.focus();
+
+      email.addEventListener("input",    () => { ui.setError(email, errors.email, ""); ui.setStatus(status, ""); });
+      password.addEventListener("input", () => { ui.setError(password, errors.password, ""); ui.setStatus(status, ""); });
+      confirm.addEventListener("input",  () => { ui.setError(confirm, errors.confirm, ""); ui.setStatus(status, ""); });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        ui.setStatus(status, "");
+
+        const mail = email.value.trim();
+        const pass = password.value;
+        const again = confirm.value;
+
+        const mailProblem = !mail ? "Enter your email."
+          : !ui.isEmail(mail) ? "Enter a valid email address, like name@example.com." : "";
+        const passProblem = !pass ? "Choose a password."
+          : pass.length < 8 ? "Use at least 8 characters." : "";
+        const confirmProblem = !again ? "Type your password again."
+          : again !== pass ? "The passwords don't match." : "";
+
+        ui.setError(email, errors.email, mailProblem);
+        ui.setError(password, errors.password, passProblem);
+        ui.setError(confirm, errors.confirm, confirmProblem);
+        if (mailProblem) { email.focus(); return; }
+        if (passProblem) { password.focus(); return; }
+        if (confirmProblem) { confirm.focus(); return; }
+
+        ui.setBusy(submitBtn, true, "Create account", "Creating account…");
+
+        if (!isConfigured) {
+          await ui.wait(600);
+          ui.setStatus(status, ui.demoMessage, "ok");
+          ui.setBusy(submitBtn, false, "Create account", "Creating account…");
+          return;
+        }
+
+        try {
+          const { data, error } = await sb.auth.signUp({
+            email: mail,
+            password: pass,
+            options: { emailRedirectTo: new URL(SITE.afterLogin, window.location.href).href },
+          });
+
+          if (error) {
+            ui.setStatus(status, ui.friendlyAuthError(error), "error");
+          } else if (data.session) {
+            /* Email confirmation is switched off in Supabase: they're signed in already */
+            window.location.assign(SITE.afterLogin);
+            return;
+          } else {
+            form.hidden = true;
+            document.querySelector(".lede").textContent = "";
+            const done = document.createElement("p");
+            done.className = "status";
+            done.dataset.type = "ok";
+            done.textContent = "Check your inbox. We sent a confirmation link to " + mail + ". Open it, then sign in.";
+            form.insertAdjacentElement("afterend", done);
+            return;
+          }
+        } catch (_) {
+          ui.setStatus(status, "Can't reach the server. Check your connection and try again.", "error");
+        }
+        ui.setBusy(submitBtn, false, "Create account", "Creating account…");
+      });
+    })();
+  </script>
+</body>
+</html>
